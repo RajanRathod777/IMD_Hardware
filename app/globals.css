@@ -1,4 +1,4 @@
-@import "tailwindcss";
+/* @import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -23,4 +23,170 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+} */
+ @import "tailwindcss";
+
+:root {
+  /* ---------- BRAND COLORS ---------- */
+  --color-primary: #FF7A00;
+  /* Vibrant Orange */
+  --color-primary-light: #FF9F40;
+  /* Soft Orange */
+  --color-primary-dark: #CC6200;
+  /* Deep Orange */
+  --color-primary-soft: #FFE2C4;
+  /* Light Creamy Orange */
+
+  /* ---------- SECONDARY COLORS ---------- */
+  --color-secondary: #FFB200;
+  /* Gold Orange */
+  --color-secondary-dark: #E89A00;
+  /* Golden Deep Orange */
+  --color-secondary-light: #FFE6A8;
+  /* Soft Gold */
+
+  /* ---------- ACCENT COLORS ---------- */
+  --color-accent-1: #FF8C1A;
+  /* Bright Orange Hover */
+  --color-accent-2: #FF6B35;
+  /* Reddish Orange */
+  --color-accent-3: #FFC48B;
+  /* Light Accent Orange */
+  --color-accent-4: #FF5400;
+  /* Flame Orange */
+
+  /* ---------- NEUTRALS ---------- */
+  --color-bg: #FFF8F2;
+  /* Warm Soft Background */
+  --color-bg-alt: #FFF3E6;
+  /* Slightly Warmer Background */
+  --color-surface: #FFFFFF;
+  /* White Surface */
+  --color-surface-alt: #FDF0E1;
+  /* Subtle Tinted Surface */
+  --color-border: #E3D2C8;
+  /* Soft Warm Border */
+  --color-border-strong: #C9B5A8;
+  /* Stronger Border */
+
+  /* ---------- TEXT COLORS ---------- */
+  --color-text-primary: #1A1A1A;
+  /* Strong Text */
+  --color-text-secondary: #444444;
+  /* Medium Text */
+  --color-text-muted: #7A7A7A;
+  /* Muted Text */
+  --color-text-light: #AFAFAF;
+  /* Very Soft Text */
+  --color-text-on-primary: #FFFFFF;
+  /* Text on Orange Buttons */
+
+  /* ---------- STATUS COLORS ---------- */
+  --color-success: #28A745;
+  /* Green */
+  --color-success-light: #DFF5E6;
+  /* Light Success */
+  --color-warning: #FFC107;
+  /* Yellow Warning */
+  --color-warning-light: #FFF3CD;
+  /* Light Warning */
+  --color-danger: #DC3545;
+  /* Error */
+  --color-danger-light: #F8D7DA;
+  /* Light Error */
+
+
+  /* ---------- BORDER COLORS (EXPANDED) ---------- */
+  --color-border: #c5c5c5;
+  /* Soft Warm Border */
+  --color-border-strong: #424242;
+  /* Stronger Border */
+
+  --color-border-light: #F0E4DC;
+  /* Very Light Warm Border */
+  --color-border-lighter: #F7EFE9;
+  /* Ultra Light Border */
+
+  --color-border-dark: #8d8d8d;
+  /* Medium Dark Border */
+  --color-border-darker: #4d4d4d;
+  /* Deep Warm Border */
+
+  --color-border-primary: #FF7A00;
+  /* Orange Primary Border */
+  --color-border-primary-light: #FF9F40;
+  /* Soft Primary Border */
+  --color-border-primary-dark: #CC6200;
+  /* Deep Primary Border */
+
+  --color-border-accent: #FF5400;
+  /* Accent Flame Border */
+  --color-border-accent-light: #FFC48B;
+  /* Accent Soft Border */
+
+  --color-border-warning: #FFC107;
+  /* Yellow Warning Border */
+  --color-border-success: #28A745;
+  /* Green Success Border */
+  --color-border-danger: #DC3545;
+  /* Red Error Border */
+
+
+  /* ---------- GRADIENTS ---------- */
+  --gradient-primary: linear-gradient(45deg, #FF7A00, #FF9F40);
+  --gradient-secondary: linear-gradient(45deg, #FF5400, #FF8C1A);
+
+  /* ---------- SHADOW COLORS ---------- */
+  --shadow-soft: rgba(0, 0, 0, 0.07);
+  --shadow-medium: rgba(0, 0, 0, 0.15);
+  --shadow-strong: rgba(0, 0, 0, 0.25);
+
+  /* ---------- FONT FAMILY ---------- */
+  --font-primary: "Inter", "Poppins", "Roboto", sans-serif;
+  --font-heading: "Poppins", "Inter", "Montserrat", sans-serif;
+  --font-body: "Inter", "Roboto", sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* ---------- FONT WEIGHTS ---------- */
+  --font-thin: 100;
+  --font-extralight: 200;
+  --font-light: 300;
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+  --font-black: 900;
+
+  /* ---------- FONT SIZES ---------- */
+  --text-xs: 0.75rem;
+  /* 12px */
+  --text-sm: 0.875rem;
+  /* 14px */
+  --text-base: 1rem;
+  /* 16px */
+  --text-lg: 1.125rem;
+  /* 18px */
+  --text-xl: 1.25rem;
+  /* 20px */
+  --text-2xl: 1.5rem;
+  /* 24px */
+  --text-3xl: 1.875rem;
+  /* 30px */
+  --text-4xl: 2.25rem;
+  /* 36px */
+  --text-5xl: 3rem;
+  /* 48px */
+  --text-6xl: 4rem;
+  /* 64px */
+
+  /* ---------- LETTER SPACING ---------- */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.05em;
+
+  /* ---------- LINE HEIGHT ---------- */
+  --leading-tight: 1.1;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
 }
