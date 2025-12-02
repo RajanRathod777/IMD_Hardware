@@ -27,7 +27,7 @@ const AdvertiseSlider = () => {
 
   // Handle video ended event
   const handleVideoEnd = (productId) => {
-    if (swiperRef.current) {
+    if (swiperRef.current && swiperRef.current.slideNext) {
       swiperRef.current.slideNext();
     }
   };
@@ -44,7 +44,7 @@ const AdvertiseSlider = () => {
 
     // Pause all videos first
     Object.values(videoRefs.current).forEach((video) => {
-      if (video && video.pause) {
+      if (video) {
         video.pause();
         video.currentTime = 0;
       }
@@ -55,11 +55,16 @@ const AdvertiseSlider = () => {
       const currentProduct = AdvertisedProducts[realIndex];
       if (currentProduct && currentProduct.video?.[0]) {
         const currentVideo = videoRefs.current[currentProduct.product_id];
-        if (currentVideo && currentVideo.play) {
-          currentVideo.play().catch(console.error);
+        if (currentVideo) {
+          const playPromise = currentVideo.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              if (error.name !== "AbortError") {
+                console.error("Video play error:", error);
+              }
+            });
+          }
         }
-      } else {
-        // If it's an image slide, autoplay will resume automatically
       }
     }, 300);
   };
@@ -79,7 +84,9 @@ const AdvertiseSlider = () => {
         style={{ minHeight: "250px" }}
       >
         <Swiper
-          ref={swiperRef}
+          onSwiper={(swiper) => {
+            swiperRef.current = swiper;
+          }}
           modules={[Autoplay, Pagination, Navigation]}
           spaceBetween={5}
           slidesPerView={1}
@@ -88,7 +95,6 @@ const AdvertiseSlider = () => {
           autoplay={{ delay: 5000, disableOnInteraction: false }}
           loop={true}
           onSlideChange={handleSlideChange}
-          onSwiper={handleSlideChange}
         >
           {AdvertisedProducts.map((product, index) => (
             <SwiperSlide

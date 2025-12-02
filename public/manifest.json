@@ -1,0 +1,21 @@
+{
+  "name": "IMD Hardware",
+  "short_name": "IMD Hardware",
+  "description": "IMD Hardware offers top-quality hardware solutions for all your needs. Shop now for the best deals.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}

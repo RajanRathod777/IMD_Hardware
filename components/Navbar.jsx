@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Cookies from "js-cookie";
@@ -31,22 +31,14 @@ const navItems = [
 
 const Navbar = () => {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
-  const [token, setToken] = useState(null);
+  const token = Cookies.get("auth_token") || null;
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState([]);
   const { products, cart } = useStore();
 
-  useEffect(() => {
-    const t = Cookies.get("auth_token");
-    setToken(t || null);
-  }, []);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) return setFilteredProducts([]);
-
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-
-    const results = products.filter((product) => {
+    return products.filter((product) => {
       return (
         product.name?.toLowerCase().includes(query) ||
         product.category_name?.toLowerCase().includes(query) ||
@@ -55,8 +47,6 @@ const Navbar = () => {
         product.size?.toLowerCase().includes(query)
       );
     });
-
-    setFilteredProducts(results);
   }, [searchQuery, products]);
 
   return (
