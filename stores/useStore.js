@@ -1,9 +1,9 @@
-
-"use client"
+"use client";
 import { create } from "zustand";
 
 const fetchProducts = async () => {
-  const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL || "http://localhost:4444";
+  const apiUrl =
+    process.env.NEXT_PUBLIC_SERVER_API_URL || "http://localhost:4444";
   try {
     const res = await fetch(`${apiUrl}/api/v1/product`);
     if (!res.ok) throw new Error("Failed to fetch products");
@@ -18,7 +18,8 @@ const fetchProducts = async () => {
 };
 
 const fetchCategories = async () => {
-  const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL || "http://localhost:4444";
+  const apiUrl =
+    process.env.NEXT_PUBLIC_SERVER_API_URL || "http://localhost:4444";
   try {
     const res = await fetch(`${apiUrl}/api/v1/product/category/get/all`);
     if (!res.ok) throw new Error("Failed to fetch categories");

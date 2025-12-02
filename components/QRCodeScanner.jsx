@@ -1,5 +1,5 @@
 "use client";
-import  { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import Cookies from "js-cookie";
 
