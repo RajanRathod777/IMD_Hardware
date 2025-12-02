@@ -9,8 +9,9 @@ import "swiper/css/navigation";
 import { ShoppingCart, Play, Image, Clock } from "lucide-react";
 
 const AdvertiseSlider = () => {
-  const apiUrl = process.env.NEXT_PUBLIC_NEXT_PUBLIC_SERVER_API_URL;
-  console.log("NEXT_PUBLIC_NEXT_PUBLIC_SERVER_API_URL", apiUrl);
+  const apiUrl =
+    process.env.NEXT_PUBLIC_SERVER_API_URL || "https://imd.imdbazer.shop";
+  console.log("NEXT_PUBLIC_SERVER_API_URL", apiUrl);
   const { products } = useStore();
   const [AdvertisedProducts, setAdvertisedProducts] = useState([]);
   const swiperRef = useRef(null);

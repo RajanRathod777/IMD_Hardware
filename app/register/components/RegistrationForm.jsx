@@ -20,6 +20,7 @@ import { states, cities } from "../../../data/indianStatesCities";
 export default function RegistrationPage() {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   const pinCode_url = process.env.NEXT_PUBLIC_PINCODE_URL;
+  console.log("api url", apiUrl, "pincode_url", pinCode_url);
 
   const [stage, setStage] = useState("verify"); // verify | register | done
 
@@ -90,7 +91,7 @@ export default function RegistrationPage() {
         }
       } catch (error) {
         console.error("Error fetching pin code:", error);
-        setFormData((prev) => ({ ...prev, pincode: "Error" }));
+        setFormData((prev) => ({ ...prev, pincode: "" }));
       }
     };
 
