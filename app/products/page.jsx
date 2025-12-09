@@ -1,15 +1,7 @@
+import { productsPageMetadata } from "../../seo/productsSeo";
 
+export const metadata = productsPageMetadata;
 
 export default function Page() {
-  return (
-   <div>
-    product
-   </div>
-  );
+  return <div>product</div>;
 }
-
-export const metadata = {
-  title: "Products | IMD Hardware",
-  description: "Explore all products available at IMD Hardware.",
-  alternates: { canonical: "/products" },
-};

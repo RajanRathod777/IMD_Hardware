@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import Loading from "../../../components/Loading";
+import DownloadeInvoice from "./DownloadeInvoice";
 import {
   ChevronLeft,
   ChevronRight,
@@ -400,6 +401,9 @@ export default function Orders() {
                               Tracking: {order.tracking_number}
                             </p>
                           )}
+                          <p>
+                            <DownloadeInvoice data={order} />
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -479,7 +483,11 @@ export default function Orders() {
                               className="text-sm font-semibold"
                               style={{ color: "var(--color-text-primary)" }}
                             >
-                              {formatCurrency(item.total)}
+                              {formatCurrency(
+                                item.price *
+                                  item.quantity *
+                                  (1 + (item.gst_rate || 0) / 100)
+                              )}
                             </p>
                             <p
                               className="text-xs"
@@ -508,21 +516,62 @@ export default function Orders() {
                       </div>
                       <div className="text-right">
                         <div className="space-y-1">
-                          {order.discount_value > 0 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span
-                                style={{ color: "var(--color-text-secondary)" }}
-                              >
-                                Discount:
-                              </span>
-                              <span
-                                className="font-medium"
-                                style={{ color: "var(--color-text-primary)" }}
-                              >
-                                -{formatCurrency(order.discount_value)}
-                              </span>
-                            </div>
-                          )}
+                          {(() => {
+                            const totalGross = order.items.reduce(
+                              (acc, item) => {
+                                return (
+                                  acc +
+                                  item.price *
+                                    item.quantity *
+                                    (1 + (item.gst_rate || 0) / 100)
+                                );
+                              },
+                              0
+                            );
+                            const totalDiscount =
+                              totalGross - order.final_amount;
+
+                            return (
+                              <>
+                                <div className="flex items-center justify-between text-sm">
+                                  <span
+                                    style={{
+                                      color: "var(--color-text-secondary)",
+                                    }}
+                                  >
+                                    Total Amount:
+                                  </span>
+                                  <span
+                                    className="font-medium"
+                                    style={{
+                                      color: "var(--color-text-primary)",
+                                    }}
+                                  >
+                                    {formatCurrency(totalGross)}
+                                  </span>
+                                </div>
+                                {totalDiscount > 0.01 && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span
+                                      style={{
+                                        color: "var(--color-text-secondary)",
+                                      }}
+                                    >
+                                      Discount:
+                                    </span>
+                                    <span
+                                      className="font-medium"
+                                      style={{
+                                        color: "var(--color-text-primary)",
+                                      }}
+                                    >
+                                      -{formatCurrency(totalDiscount)}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           <div className="flex items-center justify-between">
                             <span
                               className="text-base font-semibold"

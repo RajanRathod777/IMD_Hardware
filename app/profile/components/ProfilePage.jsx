@@ -25,7 +25,6 @@ import { states, cities } from "../../../data/indianStatesCities";
 export default function ProfilePage() {
   const token = Cookies.get("auth_token");
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
-  const pinCode_url = process.env.NEXT_PUBLIC_PINCODE_URL;
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -74,35 +73,6 @@ export default function ProfilePage() {
       }
     }
   }, [formData.state]);
-
-  // Fetch pincode when city changes - SAME AS REGISTRATION
-  useEffect(() => {
-    console.log("call pin code");
-
-    const fetchPincode = async () => {
-      if (!formData.city || !editableFields.city) return;
-
-      try {
-        const response = await fetch(`${pinCode_url}/${formData.city}`);
-        const data = await response.json();
-        const firstItem = data[0];
-        if (firstItem?.Status === "Success") {
-          const firstPin = firstItem.PostOffice[0].Pincode;
-          setFormData((prev) => ({ ...prev, pincode: firstPin }));
-          setIsEdited(true);
-        } else {
-          setFormData((prev) => ({ ...prev, pincode: "Not found" }));
-          setIsEdited(true);
-        }
-      } catch (error) {
-        console.error("Error fetching pin code:", error);
-        setFormData((prev) => ({ ...prev, pincode: "Error" }));
-        setIsEdited(true);
-      }
-    };
-
-    fetchPincode();
-  }, [formData.city, editableFields.city]);
 
   const fetchUserProfile = async () => {
     if (!token) {
@@ -172,6 +142,15 @@ export default function ProfilePage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Validate pincode to only allow 6 digits
+    if (name === "pincode") {
+      // Only allow digits and max 6 characters
+      if (value && (!/^\d*$/.test(value) || value.length > 6)) {
+        return;
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -817,7 +796,7 @@ export default function ProfilePage() {
                       className="block text-sm mb-1"
                       style={{ color: "var(--color-text-secondary)" }}
                     >
-                      Pincode
+                      Pincode (6 digits)
                     </label>
                     <div className="relative">
                       <MapPinned
@@ -830,6 +809,8 @@ export default function ProfilePage() {
                         value={formData.pincode}
                         onChange={handleInputChange}
                         readOnly={!editableFields.pincode}
+                        maxLength="6"
+                        pattern="\d{6}"
                         className={`w-full pl-10 pr-10 py-2 border focus:ring-2 focus:outline-none ${
                           !editableFields.pincode ? "cursor-not-allowed" : ""
                         }`}
@@ -841,7 +822,7 @@ export default function ProfilePage() {
                           borderColor: "var(--color-border)",
                           "--tw-ring-color": "var(--color-primary)",
                         }}
-                        placeholder="Pincode"
+                        placeholder="Enter 6-digit pincode"
                       />
                       {!editableFields.pincode && (
                         <button

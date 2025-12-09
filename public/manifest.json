@@ -3,7 +3,7 @@
   "short_name": "IMD Hardware",
   "description": "IMD Hardware offers top-quality hardware solutions for all your needs. Shop now for the best deals.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [

@@ -22,7 +22,6 @@ const Checkout = () => {
   const router = useRouter();
   const { cart, checkedOrder, signOrder, clearCart } = useStore();
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
-  const pinCode_url = process.env.NEXT_PUBLIC_PINCODE_URL;
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -78,33 +77,6 @@ const Checkout = () => {
     }
   }, [form.state]);
 
-  // Fetch pincode when city changes
-  useEffect(() => {
-    const fetchPincode = async () => {
-      if (!form.city) return;
-
-      try {
-        setLoading(true);
-        const response = await fetch(`${pinCode_url}/${form.city}`);
-        const data = await response.json();
-        const firstItem = data[0];
-        if (firstItem?.Status === "Success") {
-          const firstPin = firstItem.PostOffice[0].Pincode;
-          setForm((prev) => ({ ...prev, pincode: firstPin }));
-        } else {
-          setForm((prev) => ({ ...prev, pincode: "Not found" }));
-        }
-      } catch (error) {
-        console.error("Error fetching pin code:", error);
-        setForm((prev) => ({ ...prev, pincode: "Error" }));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPincode();
-  }, [form.city]);
-
   // Calculate totals from checkedOrder
   useEffect(() => {
     if (checkedOrder) {
@@ -131,6 +103,15 @@ const Checkout = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Validate pincode to only allow 6 digits
+    if (name === "pincode") {
+      // Only allow digits and max 6 characters
+      if (value && (!/^\d*$/.test(value) || value.length > 6)) {
+        return;
+      }
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
     setError("");
   };
@@ -553,21 +534,22 @@ const Checkout = () => {
                   className="block text-sm mb-1"
                   style={{ color: "var(--color-text-secondary)" }}
                 >
-                  Pincode
+                  Pincode (6 digits)
                 </label>
                 <input
                   type="text"
                   name="pincode"
-                  value={loading ? "Loading..." : form.pincode}
+                  value={form.pincode}
                   onChange={handleChange}
+                  maxLength="6"
+                  pattern="\d{6}"
                   className="w-full py-2 px-3 border focus:ring-2"
                   style={{
                     borderColor: "var(--color-border)",
                     "--tw-ring-color": "var(--color-primary)",
-                    backgroundColor: "var(--color-bg-alt)",
                   }}
-                  placeholder="Auto-filled from city"
-                  readOnly
+                  placeholder="Enter 6-digit pincode"
+                  required
                 />
               </div>
             </div>
@@ -665,26 +647,37 @@ const Checkout = () => {
                       className="border-b"
                       style={{ borderColor: "var(--color-border-light)" }}
                     >
+                      {/* Product Image */}
                       <td>
                         <img
                           src={`${apiUrl}/image/product/${item.images[0]}`}
-                          alt="product image"
+                          alt={item.name}
                           className="p-2 w-15 aspect-[1/1] object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </td>
+
+                      {/* Product Name */}
                       <td className="py-2">{item.name}</td>
+
+                      {/* Quantity */}
                       <td className="text-right py-2">{item.quantity}</td>
+
+                      {/* Price */}
                       <td className="text-right py-2">
                         ₹{item.price.toFixed(2)}
                       </td>
+
+                      {/* Discount */}
                       <td className="text-right py-2">
                         {item.is_discount ? (
-                          item.discount ? (
+                          item.discount && item.discount > 0 ? (
                             <span
                               style={{ color: "var(--color-text-primary)" }}
                             >
-                              -₹
-                              {item.discount.toFixed(2)}
+                              -₹{item.discount.toFixed(2)}
+                              {item.discount_percent
+                                ? ` (${item.discount_percent.toFixed(0)}%)`
+                                : ""}
                             </span>
                           ) : (
                             "₹0.00"
@@ -695,16 +688,21 @@ const Checkout = () => {
                           </span>
                         )}
                       </td>
+
+                      {/* GST */}
                       <td className="text-right py-2">
-                        {item.gst_rate}% (₹
-                        {item.gst_amount})
+                        {item.gst_rate}% (₹{item.gst_amount.toFixed(2)})
                       </td>
 
-                      <td className="text-right py-2">₹{item.total}</td>
+                      {/* Total */}
+                      <td className="text-right py-2">
+                        ₹{item.total.toFixed(2)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+
               {/* Totals Table */}
               <table
                 className="w-full text-sm"

@@ -1,16 +1,13 @@
 import Image from "next/image";
 import HomePage from "./home/components/Home";
+import { homePageMetadata } from "../seo/homeSeo";
 
-export const metadata = {
-  title: "IMD Hardware | Buy Hardware Online",
-  description: "Browse and buy hardware products with secure checkout and rewards.",
-  alternates: { canonical: "/" },
-};
+export const metadata = homePageMetadata;
 
 export default function Home() {
   return (
- <div>
-  <HomePage/>
- </div>
+    <div>
+      <HomePage/>
+    </div>
   );
 }

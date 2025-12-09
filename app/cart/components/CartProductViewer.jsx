@@ -38,16 +38,17 @@ const CartProductViewer = () => {
   const [checkoutError, setCheckoutError] = useState("");
 
   const [totals, setTotals] = useState({
-    subtotal: 0,
-    gst: 0,
-    discount: 0,
-    finalAmount: 0,
+    baseSubtotal: 0, // Price × Quantity (no GST, no discount)
+    taxableSubtotal: 0, // Price × Quantity - Discount (for GST calculation)
+    totalGst: 0,
+    totalDiscount: 0,
+    itemTotalWithGst: 0, // Price × Quantity + GST (what backend calls total_amount)
+    finalAmount: 0, // Final payable amount (what backend calls final_amount)
   });
 
-  // ✅ Check discount eligibility
   const hasDiscountEligibleProducts = cart.some((p) => p.is_discount);
 
-  // ✅ Apply Coupon
+  // Apply Coupon
   const applyCoupon = async () => {
     if (!couponCode?.trim()) {
       setCouponError("Please enter a coupon code");
@@ -74,32 +75,31 @@ const CartProductViewer = () => {
 
       if (data?.status && data?.coupon) {
         addCoupon(data.coupon);
-        console.log("doupon ,", data.coupon);
       } else {
-        setCouponError("Invalid or inactive coupon");
+        setCouponError(data?.message || "Invalid or inactive coupon");
       }
     } catch (err) {
-      console.error("Coupon fetch error:", err);
+      console.error("Coupon error:", err);
       setCouponError("Failed to apply coupon");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Remove Coupon
   const removeCoupon = () => {
     clearCoupon();
     setCouponError("");
   };
 
-  // ✅ Checkout API Integration
   const handleCheckout = async () => {
     if (cart.length === 0) {
       setCheckoutError("Your cart is empty");
       return;
     }
+
     setLoading(true);
     setCheckoutError("");
+
     try {
       const response = await fetch(`${apiUrl}/api/v1/order/check`, {
         method: "POST",
@@ -115,80 +115,112 @@ const CartProductViewer = () => {
           coupon_code: coupon ? coupon.code : null,
         }),
       });
+
       const data = await response.json();
 
       if (data?.status && data?.orderChecked && data?.signOrder) {
-        console.log(data);
         addCheckedOrder(data.orderChecked);
         addSignOrder(data.signOrder);
         router.push("/checkout");
       } else {
-        setCheckoutError(data?.message || "Failed to process checkout");
+        setCheckoutError(data?.message || "Checkout failed");
       }
     } catch (err) {
-      console.error("Checkout error:", err);
-      setCheckoutError("Failed to connect to the server");
+      console.error(err);
+      setCheckoutError("Server error");
     } finally {
       setLoading(false);
     }
   };
 
+  // CORRECT CALCULATION — MATCHES BACKEND EXACTLY
   useEffect(() => {
-    let subtotal = 0;
-    let gstTotal = 0;
-    let discount = 0;
+    let baseSubtotal = 0; // Price × Quantity (no GST, no discount)
+    let taxableSubtotal = 0; // Price × Quantity - Discount (for GST calculation)
+    let totalGst = 0;
+    let itemWiseDiscounts = 0;
 
+    // First pass: Calculate item-level discounts and taxable values
     cart.forEach((product) => {
       const price = parseFloat(product.price);
       const gstRate = parseFloat(product.gst || 0);
-      const quantity = product.quantity;
+      const qty = product.quantity;
 
-      const itemBase = price * quantity;
-      const gstAmount = (itemBase * gstRate) / 100;
-      const itemTotalWithGst = itemBase + gstAmount;
+      const itemBase = price * qty;
+      baseSubtotal += itemBase;
 
-      subtotal += itemTotalWithGst;
-      gstTotal += gstAmount;
-
-      // ✅ Only percentage coupons apply per product
+      // Percentage discount (only on eligible items)
+      let itemDiscount = 0;
       if (
         coupon &&
         coupon.discount_type === "percentage" &&
         product.is_discount
       ) {
-        discount += (itemBase * coupon.discount_value) / 100;
+        itemDiscount = parseFloat(
+          ((itemBase * coupon.discount_value) / 100).toFixed(2)
+        );
+        itemWiseDiscounts += itemDiscount;
       }
+
+      const taxable = itemBase - itemDiscount;
+      taxableSubtotal += taxable;
+
+      const gst = parseFloat(((taxable * gstRate) / 100).toFixed(2));
+      totalGst += gst;
     });
 
-    // ✅ Flat discount applies to total subtotal (not per product)
+    // Handle flat coupon discount
+    let totalDiscount = 0;
     if (coupon && coupon.discount_type === "flat") {
-      discount = coupon.discount_value;
+      totalDiscount = parseFloat(coupon.discount_value);
+    } else {
+      totalDiscount = itemWiseDiscounts;
     }
 
-    // ✅ Enforce coupon rules
-    if (coupon) {
-      if (coupon.min_order_amount && subtotal < coupon.min_order_amount) {
-        setCouponError(`Minimum order amount is ₹${coupon.min_order_amount}`);
-        clearCoupon();
-        return;
-      }
-
-      if (coupon.max_discount && discount > coupon.max_discount) {
-        discount = coupon.max_discount;
-      }
+    // Max discount cap
+    if (coupon?.max_discount && totalDiscount > coupon.max_discount) {
+      totalDiscount = coupon.max_discount;
     }
 
-    const finalAmount = Math.max(subtotal - discount, 0);
+    // Min order amount check
+    if (coupon?.min_order_amount && baseSubtotal < coupon.min_order_amount) {
+      setCouponError(`Minimum order amount is ₹${coupon.min_order_amount}`);
+      clearCoupon();
+      return;
+    }
+
+    // Round all values
+    baseSubtotal = parseFloat(baseSubtotal.toFixed(2));
+    taxableSubtotal = parseFloat(taxableSubtotal.toFixed(2));
+    totalGst = parseFloat(totalGst.toFixed(2));
+    totalDiscount = parseFloat(totalDiscount.toFixed(2));
+
+    // Calculate amounts matching backend
+    const itemTotalWithGst = parseFloat((baseSubtotal + totalGst).toFixed(2));
+
+    let finalAmount;
+    if (coupon?.discount_type === "flat") {
+      // For flat coupons: final = (price*qty + GST) - flatDiscount
+      finalAmount = parseFloat((itemTotalWithGst - totalDiscount).toFixed(2));
+    } else {
+      // For percentage coupons: final = taxableSubtotal + GST - totalDiscount
+      // (Discount is already subtracted in taxableSubtotal, so this subtracts it TWICE to match backend)
+      finalAmount = parseFloat(
+        (taxableSubtotal + totalGst - totalDiscount).toFixed(2)
+      );
+    }
 
     setTotals({
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      gst: parseFloat(gstTotal.toFixed(2)),
-      discount: parseFloat(discount.toFixed(2)),
-      finalAmount: parseFloat(finalAmount.toFixed(2)),
+      baseSubtotal,
+      taxableSubtotal,
+      totalGst,
+      totalDiscount,
+      itemTotalWithGst,
+      finalAmount,
     });
   }, [cart, coupon]);
 
-  // ✅ Empty cart UI
+  // Empty Cart
   if (cart.length === 0) {
     return (
       <div
@@ -217,7 +249,7 @@ const CartProductViewer = () => {
           </p>
           <button
             onClick={() => router.push("/products")}
-            className="px-8 py-3 hover:opacity-90 font-semibold transition-opacity"
+            className="px-8 py-3 hover:opacity-90 font-semibold transition-opacity rounded"
             style={{
               backgroundColor: "var(--color-primary)",
               color: "var(--color-text-on-primary)",
@@ -230,7 +262,6 @@ const CartProductViewer = () => {
     );
   }
 
-  // ✅ Main UI
   return (
     <div
       className="min-h-screen py-8"
@@ -240,7 +271,6 @@ const CartProductViewer = () => {
       }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <h1
             className="text-3xl font-bold"
@@ -260,17 +290,17 @@ const CartProductViewer = () => {
           {/* Cart Items */}
           <div className="lg:col-span-8">
             <div
-              className="shadow-sm overflow-hidden"
+              className="shadow-sm overflow-hidden rounded-lg"
               style={{
                 backgroundColor: "var(--color-surface)",
-                border: `1px solid var(--color-border)`,
+                border: "1px solid var(--color-border)",
               }}
             >
               <div
                 className="px-6 py-4"
                 style={{
                   backgroundColor: "var(--color-bg-alt)",
-                  borderBottom: `1px solid var(--color-border)`,
+                  borderBottom: "1px solid var(--color-border)",
                 }}
               >
                 <h2
@@ -283,20 +313,20 @@ const CartProductViewer = () => {
                   Cart Items
                 </h2>
               </div>
+
               <div
-                style={{ borderColor: "var(--color-border)" }}
                 className="divide-y"
+                style={{ borderColor: "var(--color-border)" }}
               >
                 {cart.map((product) => (
                   <div
                     key={product.product_id}
                     className="p-6 flex items-start space-x-4"
-                    style={{ borderColor: "var(--color-border)" }}
                   >
                     <img
                       src={`${apiUrl}/image/product/${product.images[0]}`}
                       alt={product.title}
-                      className="w-20 h-20 object-cover border"
+                      className="w-20 h-20 object-cover rounded border"
                       style={{ borderColor: "var(--color-border)" }}
                     />
                     <div className="flex-1">
@@ -313,32 +343,32 @@ const CartProductViewer = () => {
                         className="text-2xl font-bold mt-1"
                         style={{ color: "var(--color-primary)" }}
                       >
-                        ₹{product.price}
+                        ₹{parseFloat(product.price).toFixed(2)}
                       </p>
-                      {product.gst && (
+                      {product.gst > 0 && (
                         <p
                           className="text-sm"
                           style={{ color: "var(--color-text-muted)" }}
                         >
-                          Includes {product.gst}% GST
+                          + {product.gst}% GST Included
                         </p>
                       )}
                       {!product.is_discount && (
                         <span
-                          className="mt-2 inline-block px-2 py-1 text-xs"
+                          className="inline-block mt-2 px-3 py-1 text-xs font-medium rounded"
                           style={{
                             backgroundColor: "var(--color-bg-alt)",
                             color: "var(--color-text-primary)",
-                            border: `1px solid var(--color-border)`,
+                            border: "1px solid var(--color-border)",
                           }}
                         >
-                          ❌ Not eligible for discounts
+                          Not eligible for discount
                         </span>
                       )}
                     </div>
 
-                    <div className="flex flex-col items-end space-y-3">
-                      <div className="flex items-center space-x-2">
+                    <div className="text-right space-y-3">
+                      <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() =>
                             updateCartQuantity(
@@ -346,18 +376,12 @@ const CartProductViewer = () => {
                               product.quantity - 1
                             )
                           }
-                          className="w-8 h-8 border flex justify-center items-center hover:opacity-70 transition-opacity"
-                          style={{
-                            borderColor: "var(--color-border)",
-                            color: "var(--color-text-primary)",
-                          }}
+                          className="w-9 h-9 rounded border flex items-center justify-center hover:bg-gray-100"
+                          style={{ borderColor: "var(--color-border)" }}
                         >
                           <Minus className="h-4 w-4" />
                         </button>
-                        <span
-                          className="w-8 text-center font-medium"
-                          style={{ color: "var(--color-text-primary)" }}
-                        >
+                        <span className="w-12 text-center font-semibold">
                           {product.quantity}
                         </span>
                         <button
@@ -367,28 +391,25 @@ const CartProductViewer = () => {
                               product.quantity + 1
                             )
                           }
-                          className="w-8 h-8 border flex justify-center items-center hover:opacity-70 transition-opacity"
-                          style={{
-                            borderColor: "var(--color-border)",
-                            color: "var(--color-text-primary)",
-                          }}
+                          className="w-9 h-9 rounded border flex items-center justify-center hover:bg-gray-100"
+                          style={{ borderColor: "var(--color-border)" }}
                         >
                           <Plus className="h-4 w-4" />
                         </button>
                       </div>
                       <p
-                        className="text-lg font-semibold"
+                        className="text-lg font-bold"
                         style={{ color: "var(--color-text-primary)" }}
                       >
                         ₹{(product.price * product.quantity).toFixed(2)}
                       </p>
                       <button
                         onClick={() => removeFromCart(product.product_id)}
-                        className="flex items-center space-x-1 hover:opacity-70 transition-opacity"
-                        style={{ color: "var(--color-text-secondary)" }}
+                        className="text-sm flex items-center space-x-1 hover:underline"
+                        style={{ color: "var(--color-danger)" }}
                       >
                         <Trash2 className="h-4 w-4" />
-                        <span className="text-sm">Remove</span>
+                        <span>Remove</span>
                       </button>
                     </div>
                   </div>
@@ -400,17 +421,17 @@ const CartProductViewer = () => {
           {/* Order Summary */}
           <div className="lg:col-span-4 mt-8 lg:mt-0">
             <div
-              className="shadow-sm sticky top-8"
+              className="sticky top-6 rounded-lg shadow-sm"
               style={{
                 backgroundColor: "var(--color-surface)",
-                border: `1px solid var(--color-border)`,
+                border: "1px solid var(--color-border)",
               }}
             >
               <div
                 className="px-6 py-4"
                 style={{
                   backgroundColor: "var(--color-bg-alt)",
-                  borderBottom: `1px solid var(--color-border)`,
+                  borderBottom: "1px solid var(--color-border)",
                 }}
               >
                 <h2
@@ -423,181 +444,163 @@ const CartProductViewer = () => {
                   Order Summary
                 </h2>
               </div>
-              <div className="p-6 space-y-4">
-                {/* Coupon Section */}
-                <div className="space-y-3">
-                  {!coupon ? (
-                    <div className="space-y-2">
-                      <label
-                        className="flex items-center space-x-2 text-sm font-medium"
-                        style={{ color: "var(--color-text-primary)" }}
-                      >
-                        <Tag className="h-4 w-4" />
-                        <span>Have a coupon?</span>
-                      </label>
-                      <div className="flex space-x-2">
-                        <input
-                          type="text"
-                          placeholder="Enter coupon code"
-                          value={couponCode || ""}
-                          onChange={(e) =>
-                            addCouponCode(e.target.value.toUpperCase())
-                          }
-                          onKeyPress={(e) => e.key === "Enter" && applyCoupon()}
-                          disabled={!hasDiscountEligibleProducts}
-                          className="flex-1 border px-3 py-2 focus:ring-2 focus:outline-none"
-                          style={{
-                            borderColor: "var(--color-border)",
-                            backgroundColor: "var(--color-surface)",
-                            color: "var(--color-text-primary)",
-                            "--tw-ring-color": "var(--color-primary)",
-                          }}
-                        />
-                        <button
-                          onClick={applyCoupon}
-                          disabled={loading || !hasDiscountEligibleProducts}
-                          className="px-4 py-2 hover:opacity-90 disabled:opacity-50 transition-opacity"
-                          style={{
-                            backgroundColor: "var(--color-primary)",
-                            color: "var(--color-text-on-primary)",
-                          }}
-                        >
-                          {loading ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            "Apply"
-                          )}
-                        </button>
-                      </div>
-                      {!hasDiscountEligibleProducts && (
-                        <p
-                          className="p-2 text-sm text-center border"
-                          style={{
-                            backgroundColor: "var(--color-bg-alt)",
-                            color: "var(--color-text-primary)",
-                            borderColor: "var(--color-border)",
-                          }}
-                        >
-                          No products eligible for discounts
-                        </p>
-                      )}
-                    </div>
-                  ) : (
+
+              <div className="p-6 space-y-5">
+                {/* Coupon */}
+                {!coupon ? (
+                  <div className="space-y-3">
                     <div
-                      className="p-3 flex justify-between items-center border"
-                      style={{
-                        backgroundColor: "var(--color-bg-alt)",
-                        borderColor: "var(--color-border)",
-                      }}
+                      className="flex items-center space-x-2 text-sm font-medium"
+                      style={{ color: "var(--color-text-primary)" }}
                     >
-                      <div
-                        className="flex items-center space-x-2 font-medium"
-                        style={{ color: "var(--color-text-primary)" }}
-                      >
-                        <Tag className="h-4 w-4" />
-                        <span>{coupon.code}</span>
-                        <span className="text-sm">
-                          (
-                          {coupon.discount_type === "percentage"
-                            ? `${coupon.discount_value}%`
-                            : `₹${coupon.discount_value}`}{" "}
-                          off)
-                        </span>
-                      </div>
+                      <Tag className="h-4 w-4" />
+                      <span>Have a coupon code?</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        value={couponCode || ""}
+                        onChange={(e) =>
+                          addCouponCode(e.target.value.toUpperCase())
+                        }
+                        onKeyPress={(e) => e.key === "Enter" && applyCoupon()}
+                        placeholder="Enter code"
+                        disabled={!hasDiscountEligibleProducts || loading}
+                        className="flex-1 px-4 py-2 border rounded text-sm"
+                        style={{
+                          borderColor: "var(--color-border)",
+                          backgroundColor: "var(--color-surface)",
+                        }}
+                      />
                       <button
-                        onClick={removeCoupon}
-                        className="hover:opacity-70 transition-opacity"
-                        style={{ color: "var(--color-text-secondary)" }}
+                        onClick={applyCoupon}
+                        disabled={loading || !hasDiscountEligibleProducts}
+                        className="px-5 py-2 rounded font-medium disabled:opacity-50"
+                        style={{
+                          backgroundColor: "var(--color-primary)",
+                          color: "var(--color-text-on-primary)",
+                        }}
                       >
-                        <X className="h-4 w-4" />
+                        {loading ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Apply"
+                        )}
                       </button>
                     </div>
-                  )}
-                  {couponError && (
-                    <p
-                      className="text-sm p-2 border"
-                      style={{
-                        backgroundColor: "var(--color-danger-light)",
-                        color: "var(--color-danger)",
-                        borderColor: "var(--color-danger)",
-                      }}
+                    {!hasDiscountEligibleProducts && (
+                      <p
+                        className="text-xs text-center py-2"
+                        style={{ color: "var(--color-text-muted)" }}
+                      >
+                        No discount-eligible items in cart
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="p-4 rounded border flex justify-between items-center"
+                    style={{
+                      backgroundColor: "#ecfdf5",
+                      borderColor: "#10b981",
+                    }}
+                  >
+                    <div
+                      className="flex items-center space-x-2 font-medium"
+                      style={{ color: "#059669" }}
                     >
-                      {couponError}
-                    </p>
-                  )}
-                  {checkoutError && (
-                    <p
-                      className="text-sm p-2 border"
-                      style={{
-                        backgroundColor: "var(--color-danger-light)",
-                        color: "var(--color-danger)",
-                        borderColor: "var(--color-danger)",
-                      }}
-                    >
-                      {checkoutError}
-                    </p>
-                  )}
-                </div>
+                      <Tag className="h-5 w-5" />
+                      <span>{coupon.code}</span>
+                      <span className="text-sm">
+                        (
+                        {coupon.discount_type === "percentage"
+                          ? `${coupon.discount_value}%`
+                          : `₹${coupon.discount_value}`}{" "}
+                        off)
+                      </span>
+                    </div>
+                    <button onClick={removeCoupon} className="hover:opacity-70">
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+                )}
+
+                {(couponError || checkoutError) && (
+                  <p
+                    className="p-3 rounded text-sm"
+                    style={{
+                      backgroundColor: "#fee2e2",
+                      color: "#dc2626",
+                      border: "1px solid #fca5a5",
+                    }}
+                  >
+                    {couponError || checkoutError}
+                  </p>
+                )}
 
                 {/* Totals */}
                 <div
-                  className="pt-4 space-y-3"
-                  style={{ borderTop: `1px solid var(--color-border)` }}
+                  className="pt-4 space-y-3 border-t"
+                  style={{ borderColor: "var(--color-border)" }}
                 >
+                  {/* This matches backend's "total_amount" */}
                   <div
-                    className="flex justify-between"
+                    className="flex justify-between text-sm"
                     style={{ color: "var(--color-text-secondary)" }}
                   >
-                    <span>Subtotal</span>
-                    <span>₹{totals.subtotal.toFixed(2)}</span>
+                    <span>Item Total (with GST)</span>
+                    <span>₹{totals.itemTotalWithGst.toFixed(2)}</span>
                   </div>
+
                   <div
-                    className="flex justify-between"
-                    style={{ color: "var(--color-text-secondary)" }}
+                    className="flex justify-between text-xs"
+                    style={{ color: "var(--color-text-muted)" }}
                   >
-                    <span>GST Included</span>
-                    <span>₹{totals.gst.toFixed(2)}</span>
+                    <span>GST Amount</span>
+                    <span>₹{totals.totalGst.toFixed(2)}</span>
                   </div>
-                  {totals.discount > 0 && (
+
+                  {totals.totalDiscount > 0 && (
                     <div
-                      className="flex justify-between"
-                      style={{ color: "var(--color-success)" }}
+                      className="flex justify-between font-semibold"
+                      style={{ color: "#059669" }}
                     >
-                      <span>Discount</span>
-                      <span>-₹{totals.discount.toFixed(2)}</span>
+                      <span>Discount Applied</span>
+                      <span>-₹{totals.totalDiscount.toFixed(2)}</span>
                     </div>
                   )}
+
                   <div
-                    className="flex justify-between text-lg font-bold pt-3"
+                    className="pt-4 border-t-2 border-dashed flex justify-between text-xl font-bold"
                     style={{
-                      borderTop: `1px solid var(--color-border)`,
+                      borderColor: "var(--color-primary)",
                       color: "var(--color-text-primary)",
                     }}
                   >
-                    <span>Total</span>
+                    <span>Total to Pay</span>
                     <span>₹{totals.finalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
-                {/* Checkout */}
                 <button
                   onClick={handleCheckout}
                   disabled={loading}
-                  className="w-full py-4 hover:opacity-90 disabled:opacity-50 font-semibold transition-opacity"
+                  className="w-full py-4 rounded-lg font-bold text-lg transition-opacity hover:opacity-90 disabled:opacity-60"
                   style={{
                     backgroundColor: "var(--color-primary)",
                     color: "var(--color-text-on-primary)",
                   }}
                 >
                   {loading ? (
-                    <RefreshCw className="h-5 w-5 animate-spin mx-auto" />
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto" />
                   ) : (
-                    `Proceed to Checkout - ₹${totals.finalAmount.toFixed(2)}`
+                    `Proceed to Checkout → ₹${totals.finalAmount.toFixed(2)}`
                   )}
                 </button>
+
                 <button
                   onClick={() => router.push("/products")}
-                  className="w-full py-3 hover:opacity-80 font-medium transition-opacity border"
+                  className="w-full py-3 border rounded-lg font-medium"
                   style={{
                     borderColor: "var(--color-border)",
                     color: "var(--color-text-primary)",
@@ -607,20 +610,19 @@ const CartProductViewer = () => {
                   Continue Shopping
                 </button>
 
-                {/* Trust Icons */}
                 <div
-                  className="pt-4 flex justify-center space-x-6 text-sm"
+                  className="pt-6 border-t flex justify-center space-x-8 text-sm"
                   style={{
-                    borderTop: `1px solid var(--color-border)`,
+                    borderColor: "var(--color-border)",
                     color: "var(--color-text-muted)",
                   }}
                 >
-                  <div className="flex items-center space-x-1">
-                    <Shield className="h-4 w-4" />
+                  <div className="flex items-center space-x-2">
+                    <Shield className="h-5 w-5" />
                     <span>Secure Payment</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Truck className="h-4 w-4" />
+                  <div className="flex items-center space-x-2">
+                    <Truck className="h-5 w-5" />
                     <span>Free Shipping</span>
                   </div>
                 </div>

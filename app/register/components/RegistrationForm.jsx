@@ -19,8 +19,6 @@ import { states, cities } from "../../../data/indianStatesCities";
 
 export default function RegistrationPage() {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
-  const pinCode_url = process.env.NEXT_PUBLIC_PINCODE_URL;
-  console.log("api url", apiUrl, "pincode_url", pinCode_url);
 
   const [stage, setStage] = useState("verify"); // verify | register | done
 
@@ -73,30 +71,6 @@ export default function RegistrationPage() {
       }
     }
   }, [formData.state]);
-
-  // Fetch pincode when city changes
-  useEffect(() => {
-    const fetchPincode = async () => {
-      if (!formData.city) return;
-
-      try {
-        const response = await fetch(`${pinCode_url}/${formData.city}`);
-        const data = await response.json();
-        const firstItem = data[0];
-        if (firstItem?.Status === "Success") {
-          const firstPin = firstItem.PostOffice[0].Pincode;
-          setFormData((prev) => ({ ...prev, pincode: firstPin }));
-        } else {
-          setFormData((prev) => ({ ...prev, pincode: "Not found" }));
-        }
-      } catch (error) {
-        console.error("Error fetching pin code:", error);
-        setFormData((prev) => ({ ...prev, pincode: "" }));
-      }
-    };
-
-    fetchPincode();
-  }, [formData.city]);
 
   // Handle image selection and preview
   const handleImageChange = (e) => {
@@ -161,6 +135,15 @@ export default function RegistrationPage() {
   // input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Validate pincode to only allow 6 digits
+    if (name === "pincode") {
+      // Only allow digits and max 6 characters
+      if (value && (!/^\d*$/.test(value) || value.length > 6)) {
+        return;
+      }
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -262,18 +245,48 @@ export default function RegistrationPage() {
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white py-8 px-4">
-      <div className="max-w-md w-full bg-white shadow-sm border border-gray-300">
-        <div className="p-6 border-b border-gray-300">
+    <div
+      className="flex justify-center"
+      style={{
+        backgroundColor: "var(--color-bg)",
+        fontFamily: "var(--color-primary)",
+      }}
+    >
+      <div
+        className="max-w-md w-full shadow-sm border"
+        style={{
+          backgroundColor: "var(--color-surface)",
+          borderColor: "var(--color-border)",
+        }}
+      >
+        <div
+          className="p-6 border-b"
+          style={{ borderColor: "var(--color-border)" }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gray-100 flex items-center justify-center">
-              <User className="h-5 w-5 text-black" />
+            <div
+              className="w-10 h-10 flex items-center justify-center"
+              style={{ backgroundColor: "var(--color-primary-soft)" }}
+            >
+              <User
+                className="h-5 w-5"
+                style={{ color: "var(--color-primary)" }}
+              />
             </div>
             <div>
-              <h1 className="text-xl font-semibold text-black">
+              <h1
+                className="text-xl font-semibold"
+                style={{
+                  color: "var(--color-text-primary)",
+                  fontFamily: "var(--font-heading)",
+                }}
+              >
                 Create Account
               </h1>
-              <p className="text-sm text-gray-600">
+              <p
+                className="text-sm"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
                 Join us in just a few steps
               </p>
             </div>
@@ -282,18 +295,36 @@ export default function RegistrationPage() {
 
         <div className="p-6">
           {verified && (
-            <div className="mb-4 p-3 bg-gray-100 border border-gray-300 flex items-center justify-between">
+            <div
+              className="mb-4 p-3 border flex items-center justify-between"
+              style={{
+                backgroundColor: "var(--color-surface-alt)",
+                borderColor: "var(--color-border)",
+              }}
+            >
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-black" />
-                <span className="text-sm text-black">Verified</span>
-                <span className="text-xs text-gray-600">
+                <CheckCircle
+                  className="h-4 w-4"
+                  style={{ color: "var(--color-primary)" }}
+                />
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--color-text-primary)" }}
+                >
+                  Verified
+                </span>
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
                   ({formatTimer(countdown)})
                 </span>
               </div>
               <button
                 onClick={handleResend}
                 disabled={resendCooldown > 0}
-                className="text-xs text-black hover:text-gray-700 disabled:opacity-50 flex items-center gap-1"
+                className="text-xs disabled:opacity-50 flex items-center gap-1 hover:opacity-80"
+                style={{ color: "var(--color-primary)" }}
               >
                 <RefreshCw className="h-3 w-3" />
                 {resendCooldown > 0 ? `${resendCooldown}s` : "Resend"}
@@ -307,22 +338,37 @@ export default function RegistrationPage() {
           >
             {/* Contact Info */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-black">
+              <div
+                className="flex items-center gap-2"
+                style={{ color: "var(--color-text-primary)" }}
+              >
                 <Mail className="h-4 w-4" />
                 <span className="text-sm font-medium">Contact Information</span>
               </div>
 
               {/* Email */}
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  className="block text-sm mb-1"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Mail
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                    style={{ color: "var(--color-text-muted)" }}
+                  />
                   <input
                     type="email"
                     name="email"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 focus:ring-2 focus:ring-black focus:border-black"
+                    className="w-full pl-10 pr-3 py-2 border focus:ring-2 focus:outline-none"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      color: "var(--color-text-primary)",
+                      borderColor: "var(--color-border)",
+                      "--tw-ring-color": "var(--color-primary)",
+                    }}
                     placeholder="your@email.com"
                     value={formData.email}
                     onChange={handleInputChange}
@@ -334,16 +380,27 @@ export default function RegistrationPage() {
 
               {/* Phone */}
               <div>
-                <label className="block text-sm text-gray-600 mb-1">
+                <label
+                  className="block text-sm mb-1"
+                  style={{ color: "var(--color-text-secondary)" }}
+                >
                   Phone Number
                 </label>
                 <div className="flex gap-2">
                   <div className="relative w-24">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Phone
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
+                      style={{ color: "var(--color-text-muted)" }}
+                    />
                     <input
                       type="text"
                       name="phoneCode"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300"
+                      className="w-full pl-10 pr-3 py-2 border"
+                      style={{
+                        backgroundColor: "var(--color-surface)",
+                        color: "var(--color-text-primary)",
+                        borderColor: "var(--color-border)",
+                      }}
                       value={formData.phoneCode}
                       onChange={handleInputChange}
                       disabled={verified}
@@ -352,7 +409,13 @@ export default function RegistrationPage() {
                   <input
                     type="tel"
                     name="phone"
-                    className="flex-1 py-2 px-2 border border-gray-300 focus:ring-2 focus:ring-black focus:border-black"
+                    className="flex-1 py-2 px-2 border focus:ring-2 focus:outline-none"
+                    style={{
+                      backgroundColor: "var(--color-surface)",
+                      color: "var(--color-text-primary)",
+                      borderColor: "var(--color-border)",
+                      "--tw-ring-color": "var(--color-primary)",
+                    }}
                     placeholder="Phone number"
                     value={formData.phone}
                     onChange={handleInputChange}
@@ -366,7 +429,11 @@ export default function RegistrationPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-black text-white py-2 hover:bg-gray-800 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-2 text-white disabled:opacity-50 flex items-center justify-center gap-2 hover:opacity-90 transition-colors"
+                  style={{
+                    backgroundColor: "var(--color-primary)",
+                    color: "var(--color-text-on-primary)",
+                  }}
                 >
                   {loading ? (
                     <Loader className="h-4 w-4 animate-spin" />
@@ -382,8 +449,14 @@ export default function RegistrationPage() {
             {verified && (
               <>
                 {/* Account Details */}
-                <div className="space-y-4 pt-4 border-t border-gray-300">
-                  <div className="flex items-center gap-2 text-black">
+                <div
+                  className="space-y-4 pt-4 border-t"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <div
+                    className="flex items-center gap-2"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
                     <User className="h-4 w-4" />
                     <span className="text-sm font-medium">Account Details</span>
                   </div>
@@ -499,8 +572,14 @@ export default function RegistrationPage() {
                 </div>
 
                 {/* Personal Info */}
-                <div className="space-y-4 pt-4 border-t border-gray-300">
-                  <div className="flex items-center gap-2 text-black">
+                <div
+                  className="space-y-4 pt-4 border-t"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <div
+                    className="flex items-center gap-2"
+                    style={{ color: "var(--color-text-primary)" }}
+                  >
                     <MapPin className="h-4 w-4" />
                     <span className="text-sm font-medium">
                       Personal Information
@@ -578,15 +657,17 @@ export default function RegistrationPage() {
 
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">
-                        Pincode
+                        Pincode (6 digits)
                       </label>
                       <input
                         type="text"
                         name="pincode"
                         className="w-full py-2 px-2 border border-gray-300 focus:ring-2 focus:ring-black focus:border-black"
-                        placeholder="Pincode"
+                        placeholder="Enter 6-digit pincode"
                         value={formData.pincode}
                         onChange={handleInputChange}
+                        maxLength="6"
+                        pattern="\d{6}"
                       />
                     </div>
                   </div>
@@ -595,7 +676,11 @@ export default function RegistrationPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-black text-white py-2 hover:bg-gray-800 disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-2 text-white disabled:opacity-50 flex items-center justify-center gap-2 mt-4 hover:opacity-90 transition-colors"
+                  style={{
+                    backgroundColor: "var(--color-primary)",
+                    color: "var(--color-text-on-primary)",
+                  }}
                 >
                   {loading ? (
                     <Loader className="h-4 w-4 animate-spin" />
@@ -610,21 +695,36 @@ export default function RegistrationPage() {
 
           {message && (
             <div
-              className={`mt-4 p-3 text-sm border ${
-                messageType === "success"
-                  ? "bg-gray-100 text-black border-gray-300"
-                  : messageType === "error"
-                  ? "bg-gray-100 text-black border-gray-300"
-                  : "bg-gray-100 text-black border-gray-300"
-              }`}
+              className={`mt-4 p-3 text-sm border`}
+              style={{
+                backgroundColor:
+                  messageType === "success"
+                    ? "var(--color-success-light)"
+                    : "var(--color-danger-light)",
+                borderColor:
+                  messageType === "success"
+                    ? "var(--color-success)"
+                    : "var(--color-danger)",
+                color:
+                  messageType === "success"
+                    ? "var(--color-success)"
+                    : "var(--color-danger)",
+              }}
             >
               {message}
             </div>
           )}
 
-          <div className="p-4 text-center text-xs text-gray-500">
+          <div
+            className="p-4 text-center text-xs"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
             All ready have an account?{" "}
-            <Link href="/login" className="text-black hover:text-gray-700">
+            <Link
+              href="/login"
+              className="hover:underline font-medium"
+              style={{ color: "var(--color-primary)" }}
+            >
               login
             </Link>
             .

@@ -64,7 +64,7 @@ export default function LoginForm() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center py-8 px-4"
+      className="flex  justify-center"
       style={{
         backgroundColor: "var(--color-bg)",
         fontFamily: "var(--font-primary)",

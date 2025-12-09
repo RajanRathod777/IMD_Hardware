@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Cookies from "js-cookie";
+import { usePathname } from "next/navigation";
 
 import {
   Search,
@@ -30,6 +31,8 @@ const navItems = [
 ];
 
 const Navbar = () => {
+  const pathname = usePathname();
+
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   const token = Cookies.get("auth_token") || null;
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,7 +53,7 @@ const Navbar = () => {
   }, [searchQuery, products]);
 
   return (
-    <header className="border border-[var(--color-border)] bg-[var(--color-surface)] p-2 m-1">
+    <header className="border border-[var(--color-border)] bg-[var(--color-surface)] p-1 m-1">
       <nav
         className="grid [grid-template-columns:15%_25%_45%_15%] gap-y-1 items-center 
         max-[1035px]:grid-cols-2 max-[1035px]:[grid-template-columns:1fr_1fr]"
@@ -78,7 +81,11 @@ const Navbar = () => {
               {/* Profile */}
               <Link
                 href="/profile"
-                className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                className={`flex items-center gap-1 pb-1 ${
+                  pathname === "/profile"
+                    ? "text-orange-500 border-b-2 border-orange-500"
+                    : "border-b-2 border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                }`}
               >
                 <User className="w-4 h-4" />
                 <span>Profile</span>
@@ -87,7 +94,11 @@ const Navbar = () => {
               {/* Cart */}
               <Link
                 href="/cart"
-                className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                className={`flex items-center gap-1 pb-1 ${
+                  pathname === "/cart"
+                    ? "text-orange-500 border-b-2 border-orange-500"
+                    : "border-b-2 border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                }`}
               >
                 <ShoppingCart className="w-5 h-5" />
                 <span>Cart</span>
@@ -101,7 +112,11 @@ const Navbar = () => {
               {/* Login */}
               <Link
                 href="/login"
-                className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                className={`flex items-center gap-1 pb-1 ${
+                  pathname === "/login"
+                    ? "text-orange-500 border-b-2 border-orange-500"
+                    : "border-b-2 border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                }`}
               >
                 <LogIn className="w-4 h-4" />
                 <span>Login</span>
@@ -112,7 +127,11 @@ const Navbar = () => {
               {/* Register */}
               <Link
                 href="/register"
-                className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                className={`flex items-center gap-1 pb-1 ${
+                  pathname === "/register"
+                    ? "text-orange-500 border-b-2 border-orange-500"
+                    : "border-b-2 border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                }`}
               >
                 <UserPlus className="w-4 h-4" />
                 <span>Register</span>
@@ -132,8 +151,6 @@ const Navbar = () => {
             placeholder="Search products..."
             className="w-full h-9 border border-[var(--color-border)] pl-9 pr-10 text-sm bg-[var(--color-surface)]"
           />
-
-          <Mic className="absolute right-2 inset-y-0 my-auto w-4 h-4 text-gray-400" />
 
           {/* Dropdown */}
           {filteredProducts.length > 0 && (
@@ -173,31 +190,48 @@ const Navbar = () => {
 
         {/* Desktop Menu */}
         <div className="flex justify-center items-center space-x-6 text-sm max-[1035px]:hidden">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              href={to}
-              className="flex items-center gap-1 text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-            >
-              <Icon className="w-4 h-4" /> {label}
-            </Link>
-          ))}
+          {navItems.map(({ to, label, icon: Icon }) => {
+            const isActive = pathname === to;
+
+            return (
+              <Link
+                key={to}
+                href={to}
+                className={`flex items-center gap-1 pb-1 
+          ${
+            isActive
+              ? "text-orange-500 border-b-2 border-orange-500"
+              : "border-b-2 border-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+          }`}
+              >
+                <Icon className="w-4 h-4" /> {label}
+              </Link>
+            );
+          })}
         </div>
       </nav>
 
       {/* Mobile Bottom Menu */}
       <div className="w-full fixed bottom-0 left-0 z-50 bg-[var(--color-surface)] shadow-md max-[1035px]:block hidden">
-        <div className="grid grid-cols-5 text-center p-1 border border-[var(--color-border)]">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              href={to}
-              className="p-2 flex flex-col items-center text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
-            >
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
-            </Link>
-          ))}
+        <div className="grid grid-cols-5 text-center p-1 m-1 border border-[var(--color-border)]">
+          {navItems.map(({ to, label, icon: Icon }) => {
+            const isActive = pathname === to;
+
+            return (
+              <Link
+                key={to}
+                href={to}
+                className={`p-2 flex flex-col items-center text-xs ${
+                  isActive
+                    ? "text-orange-500"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-primary)]"
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
+              </Link>
+            );
+          })}
         </div>
       </div>
     </header>
