@@ -49,11 +49,17 @@ export default function robots() {
   });
 
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: disallowList,
-    },
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: disallowList,
+      },
+      {
+        userAgent: ["GPTBot", "CCBot", "Google-Extended"],
+        allow: "/",
+      },
+    ],
     sitemap: "https://imdhardware.com/sitemap.xml",
   };
 }

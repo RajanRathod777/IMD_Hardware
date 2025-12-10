@@ -222,19 +222,23 @@ const Footer = () => {
           >
             © {new Date().getFullYear()} IMD Hardware. All rights reserved.
           </p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            {["Privacy Policy", "Terms of Service", "Cookie Policy"].map(
-              (item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-sm transition-colors duration-300"
-                  style={{ color: "var(--color-text-secondary)" }}
-                >
-                  {item}
-                </a>
-              )
-            )}
+          <div className="flex flex-wrap gap-4 mt-4 md:mt-0">
+            {[
+              { label: "Privacy Policy", href: "/priveacypolicy" },
+              { label: "Terms of Service", href: "/termcondition" },
+              { label: "Return Policy", href: "/returnpolicy" },
+              { label: "Shipping Policy", href: "/shippingpolicy" },
+              { label: "Cancellation Policy", href: "/cancellationpolicy" },
+            ].map((item, i) => (
+              <a
+                key={i}
+                href={item.href}
+                className="text-sm transition-colors duration-300"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
         </div>
       </div>

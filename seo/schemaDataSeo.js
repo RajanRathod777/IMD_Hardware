@@ -8,7 +8,7 @@ export const schemaData = [
     "@id": "https://imdhardware.com/#organization",
     name: "IMD Hardware",
     url: "https://imdhardware.com",
-    logo: "https://imdhardware.com/logo.jpeg",
+    logo: "https://imdhardware.com/images/logo.jpeg",
     description:
       "IMD Hardware is a trusted manufacturer & supplier of locks, door handles, screws, bolts, basket stoppers, and premium hardware products.",
     foundingDate: "2010-05-15",
@@ -129,7 +129,7 @@ export const schemaData = [
     brand: {
       "@type": "Brand",
       name: "IMD Hardware",
-      logo: "https://imdhardware.com/logo.jpeg",
+      logo: "https://imdhardware.com/images/logo.jpeg",
     },
     manufacturer: {
       "@type": "Organization",
@@ -287,7 +287,7 @@ export const schemaData = [
     brand: {
       "@type": "Brand",
       name: "IMD Hardware",
-      logo: "https://imdhardware.com/logo.jpeg",
+      logo: "https://imdhardware.com/images/logo.jpeg",
     },
     manufacturer: {
       "@type": "Organization",
@@ -513,7 +513,7 @@ export const schemaData = [
     publisher: {
       "@type": "Organization",
       name: "IMD Hardware",
-      logo: "https://imdhardware.com/logo.jpeg",
+      logo: "https://imdhardware.com/images/logo.jpeg",
     },
     inLanguage: ["en-IN", "hi-IN", "mr-IN"],
     potentialAction: {
@@ -713,7 +713,7 @@ export const schemaData = [
     itemReviewed: {
       "@type": "Organization",
       name: "IMD Hardware",
-      image: "https://imdhardware.com/logo.jpeg",
+      image: "https://imdhardware.com/images/logo.jpeg",
     },
     author: {
       "@type": "Person",

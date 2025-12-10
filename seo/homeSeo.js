@@ -7,7 +7,17 @@ export const homePageMetadata = {
     "IMD Hardware, hardware manufacturer, hardware supplier, locks manufacturer, door handles, screws, bolts, basket stopper, hardware exporter",
 
   metadataBase: new URL("https://imdhardware.com"),
-  icons: "/logo.jpeg",
+  icons: {
+    icon: "/images/logo.jpeg",
+    shortcut: "/images/logo.jpeg",
+    apple: "/images/logo.jpeg",
+  },
+  alternates: {
+    canonical: "https://imdhardware.com",
+    languages: {
+      "en-US": "https://imdhardware.com",
+    },
+  },
 
   openGraph: {
     title: "IMD Hardware – Premium Hardware Manufacturer & Supplier",
