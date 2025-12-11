@@ -1,14 +1,8 @@
 import { useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Navigation } from "swiper/modules";
-import {
-  Star,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  User,
-  Calendar,
-} from "lucide-react";
+import { Star } from "lucide-react";
+import Loading from "../../../../components/Loading";
 import "swiper/css";
 import "swiper/css/pagination";
 
@@ -99,30 +93,7 @@ const ReviewsCarousel = ({
   onPageChange,
 }) => {
   if (reviewsLoading) {
-    return (
-      <div
-        className="flex justify-center items-center py-16 rounded-2xl border"
-        style={{
-          background:
-            "linear-gradient(to bottom right, var(--color-bg), var(--color-surface))",
-          borderColor: "var(--color-border)",
-        }}
-      >
-        <div className="text-center">
-          <Loader2
-            size={40}
-            className="animate-spin mx-auto mb-4"
-            style={{ color: "var(--color-text-muted)" }}
-          />
-          <p
-            className="font-medium"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Loading reviews...
-          </p>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (!reviews || reviews.length === 0) {

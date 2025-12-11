@@ -27,18 +27,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script 
-          type="application/ld+json" 
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }} 
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
         />
       </head>
       <body
         className={`w-full ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <StoreInitializer />
-        <Navbar/>
+        <Navbar />
         {children}
-        <ConditionalFooter/>
+        <ConditionalFooter />
       </body>
     </html>
   );

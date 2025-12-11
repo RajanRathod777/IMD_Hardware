@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import Loading from "../../../../components/Loading";
 import { useRouter } from "next/navigation";
 
 const RewardsList = () => {
@@ -74,19 +75,7 @@ const RewardsList = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="text-center">
-          <Loader2
-            className="w-8 h-8 animate-spin mx-auto mb-3"
-            style={{ color: "var(--color-text-primary)" }}
-          />
-          <p style={{ color: "var(--color-text-secondary)" }}>
-            Loading rewards...
-          </p>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error) {

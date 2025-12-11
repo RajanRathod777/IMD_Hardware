@@ -3,9 +3,15 @@ import { generateProductMetadata } from "../../../seo/singleProductSeo";
 
 export async function generateMetadata({ params }) {
   const resolvedParams = await params;
-  return generateProductMetadata({ params: resolvedParams });
+  try {
+    const meta = await generateProductMetadata({ params: resolvedParams });
+    return meta;
+  } catch (e) {
+    console.error("DEBUG: generateMetadata error", e);
+    throw e;
+  }
 }
 
-export default function Page() {
+export default function Page(props) {
   return <ProductViewer />;
 }

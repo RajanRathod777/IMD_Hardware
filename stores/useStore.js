@@ -43,6 +43,7 @@ export const useStore = create((set, get) => ({
   categories: [],
   coupon: null, // NEWUSER12
   checkedOrder: null,
+  signAmount: null,
   signOrder: null,
 
   // Set discount type
@@ -62,6 +63,9 @@ export const useStore = create((set, get) => ({
 
   // Add checked order after API success
   addCheckedOrder: (checkedOrder) => set({ checkedOrder }),
+
+  // Add signAmount order after API success
+  addSignAmount: (signAmount) => set({ signAmount }),
 
   // Add signOrder after API success
   addSignOrder: (signOrder) => set({ signOrder }),

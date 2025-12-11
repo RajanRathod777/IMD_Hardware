@@ -1,5 +1,7 @@
 "use client";
+
 import { useState, useEffect, useRef } from "react";
+import { useRazorpay, RazorpayOrderOptions } from "react-razorpay";
 import Cookies from "js-cookie";
 import { useStore } from "../../../stores/useStore";
 import {
@@ -11,7 +13,6 @@ import {
   Phone,
   Home,
   Mail,
-  Upload,
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import { states, cities } from "../../../data/indianStatesCities";
 const Checkout = () => {
   const token = Cookies.get("auth_token");
   const router = useRouter();
-  const { cart, checkedOrder, signOrder, clearCart } = useStore();
+  const { cart, checkedOrder, signOrder, clearCart, signAmount } = useStore();
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   const fileInputRef = useRef(null);
 
@@ -35,6 +36,7 @@ const Checkout = () => {
     country: "India",
     pincode: "",
     shipping_method: "standard",
+    paymentMethod: "ONLINE",
     notes: "",
   });
 
@@ -49,9 +51,6 @@ const Checkout = () => {
   const [stateOptions, setStateOptions] = useState([]);
   const [cityOptions, setCityOptions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [paymentProofImage, setPaymentProofImage] = useState(null);
-  const [paymentProofPreview, setPaymentProofPreview] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
 
   // Load all states once (lazy load country-state-city)
   // Load all states from local data
@@ -148,6 +147,21 @@ const Checkout = () => {
     }
   };
 
+  const {
+    error: razorpayError,
+    isLoading: isRazorpayLoading,
+    Razorpay,
+  } = useRazorpay();
+
+  useEffect(() => {
+    if (razorpayError) {
+      console.error("Razorpay SDK failed to load:", razorpayError);
+      setError(
+        "Payment gateway failed to load. Please check your internet connection or disable ad-blockers and refresh the page."
+      );
+    }
+  }, [razorpayError]);
+
   const handlePlaceOrder = async () => {
     const requiredFields = [
       "name",
@@ -169,7 +183,7 @@ const Checkout = () => {
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^\S+@\S+\.\S+$/;
     if (!emailRegex.test(form.email)) {
       setError("Please enter a valid email address");
       return;
@@ -182,15 +196,8 @@ const Checkout = () => {
       return;
     }
 
-    // Validate payment proof for online payments
-    if (form.paymentMethod === "ONLINE" && !paymentProofImage) {
-      setError("Please upload payment proof for online payment");
-      return;
-    }
-
     try {
       setLoading(true);
-      setIsUploading(true);
 
       // Create FormData for order submission
       const formData = new FormData();
@@ -209,48 +216,111 @@ const Checkout = () => {
       formData.append("billing_address", form.shipping_address);
       formData.append("shipping_method", form.shipping_method);
       formData.append("notes", form.notes);
+      formData.append("payment_method", form.paymentMethod);
 
-      // ✅ FIX: Use correct payment method value
-      formData.append("payment_method", form.paymentMethod); // This should be "ONLINE" or "COD"
-
-      // ✅ FIX: Properly append the encrypted order string
       if (signOrder) {
-        console.log("Sending encrypted order data:", signOrder);
         formData.append("order", signOrder);
       } else {
         throw new Error("Order data is missing");
       }
 
-      // Append payment proof image directly if online payment
-      if (form.paymentMethod === "ONLINE" && paymentProofImage) {
-        formData.append("payment_proof_image", paymentProofImage);
-      }
+      if (form.paymentMethod === "ONLINE") {
+        const resRazorpay = await fetch(`${apiUrl}/api/v1/payment/razorpay`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ signAmount }),
+        });
+        const dataRazorpay = await resRazorpay.json();
 
-      console.log("Calling order confirm API with form data");
-      console.log("Payment method:", form.paymentMethod);
+        if (!dataRazorpay.status) {
+          throw new Error(dataRazorpay.message || "Failed to initiate payment");
+        }
 
-      const res = await fetch(`${apiUrl}/api/v1/order/confirm`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+        const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+        if (!razorpayKey) {
+          throw new Error(
+            "Razorpay Key ID is missing. Please check your environment variables."
+          );
+        }
 
-      const data = await res.json();
-      if (data?.status) {
-        alert("Order placed successfully!");
-        clearCart();
-        router.push("/");
+        const options = {
+          key: razorpayKey,
+          amount: dataRazorpay.order.amount,
+          currency: dataRazorpay.order.currency,
+          name: "IMD Hardware",
+          description: "Order Payment",
+          order_id: dataRazorpay.order.id,
+          handler: async (response) => {
+            try {
+              // Add Razorpay payment details to formData
+              formData.append(
+                "razorpay_payment_id",
+                response.razorpay_payment_id
+              );
+              formData.append("razorpay_order_id", response.razorpay_order_id);
+              formData.append(
+                "razorpay_signature",
+                response.razorpay_signature
+              );
+
+              // Confirm order
+              const resConfirm = await fetch(`${apiUrl}/api/v1/order/confirm`, {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+                body: formData, // FormData automatically sets Content-Type to multipart/form-data
+              });
+
+              const dataConfirm = await resConfirm.json();
+
+              if (dataConfirm?.status) {
+                // alert("Order placed successfully!");
+                clearCart();
+                router.push("/dashboard/orders");
+              } else {
+                setError(dataConfirm?.message || "Failed to confirm order");
+              }
+            } catch (confirmError) {
+              console.error("Order confirmation error:", confirmError);
+              setError(
+                "Payment successful but failed to confirm order. Please contact support."
+              );
+            }
+          },
+          prefill: {
+            name: form.name,
+            email: form.email,
+            contact: form.phone,
+          },
+          theme: {
+            color: "#F37254",
+          },
+        };
+
+        if (!Razorpay) {
+          throw new Error("Razorpay SDK not loaded. Please refresh the page.");
+        }
+
+        const razorpayInstance = new Razorpay(options);
+        razorpayInstance.on("payment.failed", function (response) {
+          console.error("Payment failed:", response.error);
+          setError(`Payment failed: ${response.error.description}`);
+        });
+        razorpayInstance.open();
       } else {
-        setError(data?.message || "Failed to place order");
+        // Handle COD or other methods if needed
+        // For now just error or implement similar logic for COD
+        setError("Only Online payment is currently supported in this flow.");
       }
     } catch (err) {
       console.error("Order creation error:", err);
-      setError("Something went wrong while placing your order.");
+      setError(err.message || "Something went wrong while placing your order.");
     } finally {
       setLoading(false);
-      setIsUploading(false);
     }
   };
 
@@ -565,28 +635,6 @@ const Checkout = () => {
                 className="block text-sm font-medium mb-2"
                 style={{ color: "var(--color-text-secondary)" }}
               >
-                Shipping Method
-              </label>
-              <select
-                name="shipping_method"
-                value={form.shipping_method}
-                onChange={handleChange}
-                className="w-full py-2 px-3 border focus:ring-2"
-                style={{
-                  borderColor: "var(--color-border)",
-                  "--tw-ring-color": "var(--color-primary)",
-                }}
-              >
-                <option value="standard">Standard Delivery (5-7 days)</option>
-                <option value="express">Express Delivery (2-3 days)</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
                 Order Notes (Optional)
               </label>
               <textarea
@@ -793,10 +841,9 @@ const Checkout = () => {
             </div>
             <button
               onClick={handlePlaceOrder}
-              disabled={
-                loading ||
-                (form.paymentMethod === "ONLINE" && !paymentProofImage)
-              }
+              // disabled={
+              //   loading || (form.paymentMethod === "ONLINE")
+              // }
               className="w-full py-3 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold text-lg shadow-sm mt-4 flex items-center justify-center gap-2"
               style={{
                 backgroundColor: "var(--color-primary)",

@@ -3,6 +3,7 @@ import { useEffect, useState, Suspense, lazy } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useStore } from "../../../../stores/useStore";
 import Cookies from "js-cookie";
+import Loading from "../../../../components/Loading";
 
 // Lazy load heavy 3D component - defer model-viewer import
 const ModelViewer3D = lazy(() => import("./ModelViewer3D"));
@@ -109,19 +110,7 @@ const ProductViewer = () => {
   // Early return AFTER all hooks
   // ------------------------------------------------------------------
   if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-gray-600">Product not found</p>
-          <button
-            onClick={() => router.back()}
-            className="mt-4 text-blue-600 underline"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   // ------------------------------------------------------------------
@@ -150,16 +139,7 @@ const ProductViewer = () => {
 
         {/* Lazy load 3D model viewer - only show when product has 3D model and it's ready */}
         {product?.models_3d?.[0] && modelViewerReady && (
-          <Suspense
-            fallback={
-              <div
-                className="mt-8 p-4 text-center"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                Loading 3D model...
-              </div>
-            }
-          >
+          <Suspense fallback={<Loading />}>
             <ModelViewer3D product={product} apiUrl={apiUrl} />
           </Suspense>
         )}

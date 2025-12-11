@@ -6,6 +6,8 @@ import "swiper/css";
 import "swiper/css/pagination";
 import Cookies from "js-cookie";
 
+import Loading from "../../../components/Loading";
+
 const ProductReviewCarousel = () => {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
   const token = Cookies.get("auth_token");
@@ -81,18 +83,7 @@ const ProductReviewCarousel = () => {
     fetchReviews(1);
   }, []);
 
-  if (loading && reviews.length === 0)
-    return (
-      <div
-        className="text-center py-10 text-lg"
-        style={{
-          color: "var(--color-text-secondary)",
-          fontFamily: "var(--font-body)",
-        }}
-      >
-        Loading reviews...
-      </div>
-    );
+  if (loading && reviews.length === 0) return <Loading />;
 
   if (error && reviews.length === 0)
     return (

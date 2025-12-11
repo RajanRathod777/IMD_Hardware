@@ -1,13 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  Loader,
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  ArrowRight,
-} from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useStore } from "../../../stores/useStore";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -18,11 +11,13 @@ import "swiper/css/pagination";
 const ProductsViewer = () => {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
 
+  // Kept useStore ONLY for cart actions
   const { products, cart, addToCart, updateCartQuantity, removeFromCart } =
     useStore();
 
   const [visibleCount, setVisibleCount] = useState(5);
-  const visibleProducts = products.slice(0, visibleCount);
+  // Optional chaining for safety if products is initially undefined/null
+  const visibleProducts = products?.slice(0, visibleCount) || [];
 
   return (
     <div className="m-1" style={{ backgroundColor: "var(--color-bg)" }}>
@@ -218,7 +213,7 @@ const ProductsViewer = () => {
         </div>
 
         {/* Load More Controls */}
-        {products.length > visibleCount && (
+        {products && products.length > visibleCount && (
           <div className="flex justify-center mt-1 gap-4">
             {visibleCount < products.length && (
               <button

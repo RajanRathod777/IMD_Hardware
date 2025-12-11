@@ -31,6 +31,7 @@ const CartProductViewer = () => {
     clearCoupon,
     addCheckedOrder,
     addSignOrder,
+    addSignAmount,
   } = useStore();
 
   const [loading, setLoading] = useState(false);
@@ -121,6 +122,8 @@ const CartProductViewer = () => {
       if (data?.status && data?.orderChecked && data?.signOrder) {
         addCheckedOrder(data.orderChecked);
         addSignOrder(data.signOrder);
+        addSignAmount(data.signAmount);
+
         router.push("/checkout");
       } else {
         setCheckoutError(data?.message || "Checkout failed");
