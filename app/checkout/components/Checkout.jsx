@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRazorpay, RazorpayOrderOptions } from "react-razorpay";
+import { useState, useEffect } from "react";
+import { useRazorpay } from "react-razorpay";
 import Cookies from "js-cookie";
 import { useStore } from "../../../stores/useStore";
 import {
@@ -23,7 +23,6 @@ const Checkout = () => {
   const router = useRouter();
   const { cart, checkedOrder, signOrder, clearCart, signAmount } = useStore();
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
-  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -113,38 +112,6 @@ const Checkout = () => {
 
     setForm((prev) => ({ ...prev, [name]: value }));
     setError("");
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith("image/")) {
-        setError("Please upload an image file");
-        return;
-      }
-
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
-        return;
-      }
-
-      setPaymentProofImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPaymentProofPreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setPaymentProofImage(null);
-    setPaymentProofPreview("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const {
