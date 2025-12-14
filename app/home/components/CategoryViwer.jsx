@@ -12,21 +12,21 @@ const CategoryViewer = () => {
 
   // Splide Display
   return (
-    <section className="m-1 ">
+    <section className="p-2">
       {/* Name */}
       <h3
-        className="text-3xl font-bold py-3 text-left "
+        className="text-2xl font-bold py-3 text-left "
         style={{
           color: "var(--color-text-primary)",
           fontFamily: "var(--font-heading)",
         }}
       >
-        Categorys
+        Popular Categories
       </h3>
       <div className="slider-out-pagination">
         <Swiper
           modules={[Pagination, Navigation]}
-          spaceBetween={5}
+          spaceBetween={15}
           slidesPerView={2}
           pagination={{ clickable: true }}
           breakpoints={{
@@ -35,28 +35,27 @@ const CategoryViewer = () => {
             1024: { slidesPerView: 4 },
             1280: { slidesPerView: 5 },
           }}
-          className="!overflow-hidden"
+          className="py-4 !pb-8"
         >
           {categories.map((category) => (
             <SwiperSlide
               key={category.product_category_id}
-              className="p-1 max-w-[200px] border"
-              style={{ borderColor: "var(--color-border)" }}
+              className="max-w-[200px] border border-[var(--color-border)] rounded-full"
             >
               <Link href={`/products?category=${category.name}`}>
                 <div className="relative w-full h-full  aspect-[1/1] overflow-hidden">
                   {/* Image */}
-                  <div className="w-full h-full hover:scale-101">
+                  <div className="w-full h-full hover:scale-101 ">
                     <img
                       src={`${apiUrl}/image/productCategory/${category.image[0]}`}
                       alt={category.name}
-                      className="w-full h-full object-fit"
+                      className="w-full h-full object-fit rounded-full"
                     />
                   </div>
 
                   {/* Name */}
                   <h3
-                    className="absolute bottom-0 text-[12px] text-center w-full py-1"
+                    className="absolute bottom-0 text-[var(--text-base)] text-center w-full py-1 rounded-full"
                     style={{
                       color: "var(--color-text-on-primary)",
                       backgroundColor: "var(--color-text-primary)",

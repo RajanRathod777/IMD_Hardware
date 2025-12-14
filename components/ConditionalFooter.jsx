@@ -13,6 +13,7 @@ const ConditionalFooter = () => {
     "/profile",
     "/checkout",
     "/cart",
+    "/updatepassword",
   ];
 
   // Check if current page should hide footer

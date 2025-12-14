@@ -574,7 +574,7 @@ const Checkout = () => {
                   Pincode (6 digits)
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   name="pincode"
                   value={form.pincode}
                   onChange={handleChange}
@@ -808,9 +808,6 @@ const Checkout = () => {
             </div>
             <button
               onClick={handlePlaceOrder}
-              // disabled={
-              //   loading || (form.paymentMethod === "ONLINE")
-              // }
               className="w-full py-3 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold text-lg shadow-sm mt-4 flex items-center justify-center gap-2"
               style={{
                 backgroundColor: "var(--color-primary)",

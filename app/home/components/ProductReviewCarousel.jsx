@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Navigation } from "swiper/modules";
+import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import Cookies from "js-cookie";
+import { Star, User } from "lucide-react";
 
 import Loading from "../../../components/Loading";
 
@@ -96,24 +97,23 @@ const ProductReviewCarousel = () => {
     );
 
   return (
-    <div className="m-1 relative slider-out-pagination">
+    <div className="p-2 relative slider-out-pagination">
       <h3
-        className="text-3xl font-bold py-3 text-left"
+        className="text-2xl font-bold py-3 text-left"
         style={{
           color: "var(--color-text-primary)",
           fontFamily: "var(--font-heading)",
         }}
       >
-        Review
+        Customer Review
       </h3>
 
       <Swiper
         ref={swiperRef}
-        modules={[Pagination, Navigation]}
-        spaceBetween={5}
+        modules={[Pagination]}
+        spaceBetween={15}
         slidesPerView={4}
         pagination={{ clickable: true }}
-        navigation={true}
         breakpoints={{
           320: { slidesPerView: 1 },
           640: { slidesPerView: 2 },
@@ -121,27 +121,56 @@ const ProductReviewCarousel = () => {
           1024: { slidesPerView: 4 },
         }}
         onSlideChange={handleSlideChange}
+        className="py-4 !pb-8"
       >
         {reviews.map((review, index) => (
           <SwiperSlide
             key={`${review.review_id || index}`}
-            className="border"
-            style={{ borderColor: "var(--color-border)" }}
+            className="flex flex-col !h-auto"
           >
             <div
-              className="p-5"
-              style={{ backgroundColor: "var(--color-surface)" }}
+              className="p-6 rounded-xl h-full flex flex-col"
+              style={{
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-border-light)",
+                boxShadow: "var(--shadow-medium)",
+              }}
             >
-              <div className="flex items-center justify-between mb-2">
-                <div style={{ color: "var(--color-primary)" }}>
-                  {"★".repeat(review.rating)}
-                  <span style={{ color: "var(--color-border)" }}>
-                    {"★".repeat(5 - review.rating)}
-                  </span>
+              {/* User Info & Rating */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
+                    style={{ backgroundColor: "var(--color-bg-alt)" }}
+                  >
+                    <User
+                      size={20}
+                      style={{ color: "var(--color-text-secondary)" }}
+                    />
+                  </div>
+                  {/* If we had a user name, it would go here. For now, maybe just "Customer" or hide it */}
+                </div>
+
+                <div className="flex items-center gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      size={16}
+                      className={i < review.rating ? "fill-current" : ""}
+                      style={{
+                        color:
+                          i < review.rating
+                            ? "var(--color-secondary)"
+                            : "var(--color-border)",
+                        strokeWidth: i < review.rating ? 0 : 2,
+                      }}
+                    />
+                  ))}
                 </div>
               </div>
+
               <h3
-                className="h-15 text-lg font-semibold mb-1 line-clamp-2"
+                className="text-lg font-semibold mb-2 line-clamp-1"
                 style={{
                   color: "var(--color-text-primary)",
                   fontFamily: "var(--font-heading)",
@@ -149,12 +178,16 @@ const ProductReviewCarousel = () => {
               >
                 {review.review_title}
               </h3>
+
               <p
-                className="h-30 text-sm italic overflow-hidden"
-                style={{ color: "var(--color-text-secondary)" }}
+                className="text-sm leading-relaxed flex-grow overflow-hidden"
+                style={{
+                  color: "var(--color-text-secondary)",
+                  fontFamily: "var(--font-body)",
+                }}
               >
-                {review.review_text && review.review_text.length > 230
-                  ? `${review.review_text.substring(0, 230)}...`
+                {review.review_text && review.review_text.length > 150
+                  ? `${review.review_text.substring(0, 150)}...`
                   : review.review_text}
               </p>
             </div>

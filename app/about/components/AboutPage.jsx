@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import AboutHero from "./AboutHero";
 import CompanyOverview from "./CompanyOverview";
@@ -12,15 +12,17 @@ import AboutContent from "./AboutContent";
 
 const AboutPage = () => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="bg-white">
       <AboutHero />
-      <AboutContent />
-      <CompanyOverview />
-      <TrendingProducts />
-      <ProductAssemblies />
-      <CompanyFlow />
-      <QualityAssurance />
-      <ContactInfo />
+      <div className="px-4 sm:px-6 lg:px-8">
+        <AboutContent />
+        <CompanyOverview />
+        <TrendingProducts />
+        <ProductAssemblies />
+        <CompanyFlow />
+        <QualityAssurance />
+        <ContactInfo />
+      </div>
       <CTASection />
     </div>
   );

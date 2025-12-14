@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import Cookies from "js-cookie";
+import { QrCode, X, Camera, RefreshCw } from "lucide-react";
 
 const QRCodeScanner = () => {
   const apiUrl = process.env.NEXT_PUBLIC_SERVER_API_URL;
@@ -12,13 +13,16 @@ const QRCodeScanner = () => {
   const [apiResponse, setApiResponse] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
-  // guards
+  // Guards
   const hasScannedRef = useRef(false);
   const isUnmountingRef = useRef(false);
 
   const startScanner = async () => {
     if (isScanning || isUnmountingRef.current) return;
+
+    setCameraError(null); // reset error
 
     try {
       const scanner = new Html5Qrcode("reader");
@@ -30,14 +34,13 @@ const QRCodeScanner = () => {
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0, // 1:1 aspect ratio
+          aspectRatio: 1.0,
         },
         (decodedText) => {
-          // ✅ only process first successful scan
           if (hasScannedRef.current || isUnmountingRef.current) return;
           hasScannedRef.current = true;
 
-          console.log("📌 QR Code Value:", decodedText);
+          console.log("📌 QR Code:", decodedText);
           setScannedData(decodedText);
 
           fetch(`${apiUrl}/api/v1/qrcode/scan`, {
@@ -50,32 +53,36 @@ const QRCodeScanner = () => {
           })
             .then((res) => res.json())
             .then((data) => {
-              console.log("✅ API Response:", data);
+              console.log("API Response:", data);
               setApiResponse(data);
             })
-            .catch((err) => {
-              console.error("❌ API Error:", err);
+            .catch(() => {
               setApiResponse({
                 status: false,
                 message: "Something went wrong",
               });
             })
-            .finally(() => {
-              // ✅ stop scanner safely
-              safeStopScanner();
-            });
+            .finally(() => safeStopScanner());
         },
-        (errorMessage) => {
-          // Ignore scanning errors, they're normal during scanning
-        }
+        () => {}
       );
 
       setIsScanning(true);
     } catch (err) {
-      console.error("Camera start error:", err);
-      if (!isUnmountingRef.current) {
-        setIsScanning(false);
+      console.error("❌ Camera start error:", err);
+
+      // Detect camera permission denied
+      if (
+        err?.message?.includes("NotAllowedError") ||
+        err?.message?.includes("Permission") ||
+        err?.toString().includes("denied")
+      ) {
+        setCameraError("Camera permission denied. Please allow camera access.");
+      } else {
+        setCameraError("Unable to access camera. Please check your device.");
       }
+
+      setIsScanning(false);
     }
   };
 
@@ -86,16 +93,13 @@ const QRCodeScanner = () => {
     }
 
     try {
-      // Simple approach - just try to stop and catch any errors
       await scannerRef.current.stop();
-      console.log("✅ Scanner stopped successfully");
+      console.log("Scanner stopped");
     } catch (err) {
-      // Ignore "already stopped" and "not running" errors
       const errorMsg = err.message || err.toString();
       if (
         !errorMsg.includes("already stopped") &&
-        !errorMsg.includes("not running") &&
-        !errorMsg.includes("Scanner is not running")
+        !errorMsg.includes("not running")
       ) {
         console.warn("Stop warning:", errorMsg);
       }
@@ -116,7 +120,8 @@ const QRCodeScanner = () => {
     setShowPopup(true);
     setScannedData(null);
     setApiResponse(null);
-    // Start scanner after a small delay to ensure popup is rendered
+    setCameraError(null);
+
     setTimeout(() => {
       startScanner();
     }, 100);
@@ -126,31 +131,19 @@ const QRCodeScanner = () => {
     stopScanner();
   };
 
-  // Enhanced cleanup with proper state management
+  // Cleanup on unmount
   useEffect(() => {
     isUnmountingRef.current = false;
 
     return () => {
       isUnmountingRef.current = true;
+
       const cleanupScanner = async () => {
         if (scannerRef.current) {
           try {
-            await scannerRef.current.stop().catch((err) => {
-              const errorMsg = err.message || err.toString();
-              if (
-                !errorMsg.includes("already stopped") &&
-                !errorMsg.includes("not running") &&
-                !errorMsg.includes("Scanner is not running")
-              ) {
-                console.warn("Cleanup stop warning:", errorMsg);
-              }
-            });
-          } catch (err) {
-            // Ignore any cleanup errors
-            console.warn("Cleanup error (ignored):", err.message);
-          } finally {
-            scannerRef.current = null;
-          }
+            await scannerRef.current.stop();
+          } catch {}
+          scannerRef.current = null;
         }
       };
 
@@ -158,115 +151,136 @@ const QRCodeScanner = () => {
     };
   }, []);
 
-  // Force stop when popup closes
   useEffect(() => {
     if (!showPopup && isScanning) {
       safeStopScanner();
     }
   }, [showPopup, isScanning]);
-
   return (
     <>
-      {/* Floating Scan Button */}
-      <button
-        onClick={handleOpenScanner}
-        className="fixed bottom-6 right-6 bg-blue-500 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-all duration-200 z-40"
-        title="Scan QR Code"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-8 w-8"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
+      <div className="w-full flex items-center justify-center">
+        {/* Floating Scan Button */}
+        <button
+          onClick={handleOpenScanner}
+          className="text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors duration-200 flex items-center justify-center z-40  hover:bg-[var(--color-surface-alt)]"
+          title="Scan QR Code"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-          />
-        </svg>
-      </button>
+          <QrCode size={20} />
+        </button>
 
-      {/* Scanner Popup */}
-      {showPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 ">
-          <div className="bg-white max-w-md w-full p-3 border border-gray-300">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-bold text-black">QR Code Scanner</h2>
-              <button
-                onClick={handleClosePopup}
-                className="text-black hover:text-gray-700 transition-colors duration-200"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Scanner Container with 1:1 Aspect Ratio */}
-            <div className="relative w-full" style={{ aspectRatio: "1/1" }}>
-              <div
-                id="reader"
-                className="w-full h-full border border-gray-400 bg-black"
-              ></div>
-            </div>
-
-            <div className="mt-2 flex flex-col items-center space-y-2">
-              {isScanning ? (
-                <>
-                  <button
-                    onClick={stopScanner}
-                    className="bg-black text-white px-6 py-2 border border-gray-400 hover:bg-gray-800 transition-colors duration-200 font-medium w-full"
-                  >
-                    Stop Scanner
-                  </button>
-                  <p className="text-sm text-black text-center">
-                    Scanner is running... Point camera at QR code
-                  </p>
-                </>
-              ) : (
+        {/* Scanner Popup */}
+        {showPopup && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[var(--color-surface)] max-w-md w-full rounded-2xl shadow-[var(--shadow-strong)] overflow-hidden border border-[var(--color-border)] animation-fade-in-up">
+              {/* Header */}
+              <div className="flex justify-between items-center p-4 border-b border-[var(--color-border)] bg-[var(--color-surface-alt)]">
+                <div className="flex items-center gap-2 text-[var(--color-text-primary)]">
+                  <Camera size={20} className="text-[var(--color-primary)]" />
+                  <h2 className="text-lg font-semibold">QR Scanner</h2>
+                </div>
                 <button
-                  onClick={startScanner}
-                  className="bg-white text-black px-6 py-2 border border-gray-400 hover:bg-gray-100 transition-colors duration-200 font-medium w-full"
+                  onClick={handleClosePopup}
+                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] transition-colors p-1 rounded-full hover:bg-[var(--color-bg)]"
                 >
-                  Start Scanner
+                  <X size={20} />
                 </button>
-              )}
-            </div>
+              </div>
 
-            {apiResponse && (
-              <div
-                className={`mt-2 p-3 text-white font-medium text-center ${
-                  apiResponse.status ? "bg-green-600" : "bg-red-600"
-                }`}
-              >
-                <div> {apiResponse.message}</div>
-
-                <div>
-                  {apiResponse.status && (
-                    <span className="">
-                      🎉 Points Earned: {apiResponse.total_points}
-                    </span>
-                  )}
+              {/* Scanner Area */}
+              <div className="p-4 bg-[var(--color-bg)]">
+                <div className="relative w-full rounded-xl overflow-hidden border-2 border-[var(--color-border-primary)] shadow-inner group">
+                  <div
+                    id="reader"
+                    className="w-full h-full bg-black min-h-[300px]"
+                  ></div>
                 </div>
               </div>
-            )}
+
+              {/* Controls & Status */}
+              <div className="p-4 space-y-3 bg-[var(--color-surface)] border-t border-[var(--color-border)]">
+                <div className="flex flex-col gap-3">
+                  {isScanning ? (
+                    <button
+                      onClick={stopScanner}
+                      className="w-full py-2.5 px-4 bg-[var(--color-surface)] border border-[var(--color-danger)] text-[var(--color-danger)] font-medium rounded-lg hover:bg-[var(--color-danger-light)] transition-all flex items-center justify-center gap-2"
+                    >
+                      <X size={18} />
+                      Stop Scanner
+                    </button>
+                  ) : (
+                    <button
+                      onClick={startScanner}
+                      className="w-full py-2.5 px-4 bg-[var(--color-primary)] text-[var(--color-text-on-primary)] font-medium rounded-lg hover:bg-[var(--color-primary-dark)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    >
+                      <Camera size={18} />
+                      {cameraError ? "Retry Camera" : "Start Scanner"}
+                    </button>
+                  )}
+                </div>
+
+                {/* API Response Message */}
+                {apiResponse && (
+                  <div
+                    className={`mt-2 p-3 rounded-lg text-sm font-medium text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 ${
+                      apiResponse.status
+                        ? "bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-border-success)]"
+                        : "bg-[var(--color-danger-light)] text-[var(--color-danger)] border border-[var(--color-border-danger)]"
+                    }`}
+                  >
+                    {apiResponse.status ? (
+                      <>
+                        <span>🎉</span>
+                        <div className="flex flex-col">
+                          <span>{apiResponse.message}</span>
+                          <span className="text-xs opacity-90">
+                            Points Earned: {apiResponse.total_points}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <X size={16} />
+                        <span>{apiResponse.message}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Camera Error Message */}
+                {cameraError && !apiResponse && (
+                  <div className="p-3 bg-[var(--color-danger-light)] text-[var(--color-danger)] border border-[var(--color-border-danger)] rounded-lg text-sm text-center">
+                    <p className="font-semibold flex items-center justify-center gap-2">
+                      <X size={16} /> Error Accessing Camera
+                    </p>
+                    <p className="mt-1 opacity-90 text-xs">{cameraError}</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <style jsx global>{`
+        @keyframes scan {
+          0% {
+            top: 0%;
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            top: 100%;
+            opacity: 0;
+          }
+        }
+        .animate-scan {
+          animation: scan 2s linear infinite;
+        }
+      `}</style>
     </>
   );
 };
